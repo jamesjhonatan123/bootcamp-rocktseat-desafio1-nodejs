@@ -1,27 +1,23 @@
 const express = require("express");
 const cors = require("cors");
 
-  const express = require("express");
-  const cors = require("cors");
+const { v4: uuid, validate: isUuid } = require('uuid');
 
-  const { v4: uuid, validate: isUuid } = require('uuid');
+const app = express();
 
-  const app = express();
+app.use(express.json());
+app.use(cors());
 
-  app.use(express.json());
-  app.use(cors());
+const repositories = [];
 
-  const repositories = [];
+app.get("/repositories", (request, response) => {
+  
 
-  app.get("/repositories", (request, response) => {
-    
+  return response.json(repositories)
+});
 
-    return response.json(repositories)
-  });
-
-  app.post("/repositories", (request, response) => {
-    
-  const{title, url, techs} = request.body;
+app.post("/repositories", (request, response) => {
+  const {title, url, techs} = request.body;
 
   const repository = {
     id : uuid(),
@@ -31,73 +27,70 @@ const cors = require("cors");
     likes : 0,
   }
 
-  repositories.push(repository);
+  repositories.push(repository)
 
-  return response.json(repository);
-  });
+  return response.json(repository)
+});
 
-  app.put("/repositories/:id", (request, response) => {
-    const{ id } = request.params;
+app.put("/repositories/:id", (request, response) => {
+  const {id} = request.params;
+  const {title,url,techs} = request.body;
 
-    const{ title, url, techs } = request.body;
+  const repositoryIndex = repositories.findIndex(repository => repository.id == id)
 
-    const repositoryIndex = repositories.findIndex(repository => repository.id == id);
+  if(repositoryIndex < 0){
+    response.status(400).json({error : "repository not found"})
+  }
 
-    if (repositoryIndex == -1){
-      return response.status(400).json({error : 'repository not exist'});
-    }
+  const repository = {
+    id,
+    title,
+    url,
+    techs,
+    likes : repositories[repositoryIndex].likes,
+  }
 
-    const repository = {
-      id,
-      title,
-      url,
-      techs,
-      likes: repositories[repositoryIndex].likes,
-  };
+  repositories[repositoryIndex] = repository
 
+  return response.json(repository)
+});
 
-    repositories[repositoryIndex] = repository;
+app.delete("/repositories/:id", (request, response) => {
+  const {id} = request.params;
 
-    return response.json(repository);
-  });
+  const repositoryIndex = repositories.findIndex(repository => repository.id == id)
 
-  app.delete("/repositories/:id", (request, response) => {
-    const{id} = request.params;
+  if(repositoryIndex < 0){
+    response.status(400).json({error : "repository not found"})
+  }
 
+  repositories.splice(repositoryIndex)
 
-    const repositoryIndex = repositories.findIndex(repository => repository.id == id)
+  return response.status(204).send()
+});
 
-    if (repositoryIndex >= 0){
-      repositories.splice(repositoryIndex, 1);
-    } else {
-      return response.status(400).json({error : "repository does not exist"});
-    }; 
+app.post("/repositories/:id/like", (request, response) => {
+  const {id} = request.params;
 
-    return response.status(204).send();
-  });
+  const repositoryIndex = repositories.findIndex(repository => repository.id == id)
+  
+  if(repositoryIndex < 0){
+    response.status(400).json({error : "repository not found"})
+  }
+  
+let likes = repositories[repositoryIndex].likes
 
-  app.post("/repositories/:id/like", (request, response) => {
-    const { id } = request.params;
+  const repository = {
+    id,
+    title : repositories[repositoryIndex].title,
+    url : repositories[repositoryIndex].url,
+    techs : repositories[repositoryIndex].techs,
+    likes : likes + 1
+  }
 
-    const repositoryIndex = repositories.findIndex(repository => repository.id == id);
+  repositories[repositoryIndex] = repository;
 
-    if (repositoryIndex == -1){
-      return response.status(400).json({error : 'repository not exist'});
-    }
+  response.json(repository);
+});
 
-    let likes = repositories[repositoryIndex].likes;
-
-    const repository = {
-      id,
-      title : repositories[repositoryIndex].title,
-      url : repositories[repositoryIndex].url,
-      techs : repositories[repositoryIndex].techs,
-      likes : (repositories[repositoryIndex].likes + 1),
-    }
-
-    repositories[repositoryIndex] = repository;
-
-    return response.json(repository);
-  });
-
-  module.exports = app;
+module.exports = app;
